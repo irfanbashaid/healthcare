@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html> 
+  <head>
+    <script src="web3.min.js"></script>
+    <!-- <script type="text/javasript" src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script> -->
+    <meta charset="utf-8">
+    <title>Healthcare</title>
+    <style>
+      .btn {
+      border: 2px solid black;
+      background-color: white;
+      color: black;
+      padding: 8px 15px;
+      font-size: 13px;
+      cursor: pointer;
+      }
+      .success {
+      border-color: #4CAF50;
+      color: green;
+      }
+      
+      .success:hover {
+      background-color: #4CAF50;
+      color: white;
+      }
+      #t {
+        text-align:right
+      }
+      .center {
+        margin: auto;
+        width: 60%;
+        border: 3px solid #73AD21;
+        padding: 10px;
+      }
+      .tag {
+      /* position: absolute; */
+      width: 300px;
+      height: 200px;
+      z-index: 15;
+      top: 30%;
+      left: 50%;
+      margin: 50px  60px;
+      
+      }
+    </style>
+  </head>
+  <body >
+    <br><br><br>
+    <!-- <div id="t">
+      <input type="button" class="btn success" value="Upload Data" onclick="upload()">
+    </div> -->
+    <div class="container">
+      <div class="form-group">
+        <label for="name">PatientName:</label>
+        <input type="text" class="form-control" style="width:300px;" id="_patient_name">
+        <br>
+      </div>
+
+      <div>
+        <label for="date">Birth date:</label>
+        <input type="date"  name="bday" id="_patient_birth_date">
+        <br>
+      </div>
+      
+      <div class="form-group">
+        <label for="place">Birth place:</label>
+        <input type="text" class="form-control" style="width:300px;" id="_place_of_birth">
+        <br>
+      </div>
+      
+      <div id="_gender" class="radio">
+        <label for="radio">Gender:</label>
+        <label><input type="radio" name="optradio" id="g1" value="1">Male</label>
+        <label><input type="radio" name="optradio" id="g2" value="0">Female</label>
+        <br>
+        <br>
+      </div>
+
+      <div>
+        <input type="button" class="btn success" value="save" onclick="push_info()">
+      </div>
+    </div>
+    <div class="center tag">
+      <label>Patient Id:</label>
+      <input type="text" id="patient_id_push">
+      <br>
+      <br>
+      <label>Data Hash:</label>
+      <input type="text" id="data">
+      <br>
+      <br>
+      <input type="button" class="btn success" value="Upload" onclick="push_data()">
+    </div>
+    <div class="center tag">
+        <label>Patient Id:</label>
+        <input  type="text" id="patient_id_pull">
+        <br>
+        <br>      
+        <input type="button" class="btn success" value="Show details" onclick="show_details()">
+        <br>
+        <br>
+        <label>Data:</label>
+        <input type="text" id="data_label" readonly>
+    </div> 
+        
+    
+  </body>
+  <script>
+    if (typeof web3 !== 'undefined') {
+      web3 = new Web3(web3.currentProvider);
+    }
+    else {
+    // set the provider you want from Web3.providers
+      web3 = new Web3(new Web3.providers.HttpProvider("http://ropsten.infura.io/"));   
+      if(!web3.isConnected())
+          console.log("not connected");
+      else
+          console.log("connected");
+    }
+    web3.eth.defaultAccount = web3.eth.accounts[0];
+    var abijson= web3.eth.contract([
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_patient_name",
+            "type": "string"
+          },
+          {
+            "name": "_patient_birth_date",
+            "type": "uint256"
+          },
+          {
+            "name": "_place_of_birth",
+            "type": "string"
+          },
+          {
+            "name": "_gender",
+            "type": "bool"
+          }
+        ],
+        "name": "get_info",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "name": "_patient_id",
+            "type": "uint256"
+          },
+          {
+            "name": "_ipfs_hash",
+            "type": "address"
+          }
+        ],
+        "name": "store_info",
+        "outputs": [
+          {
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "payable": true,
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "name": "_contract_address",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "Patient_detail_map",
+        "outputs": [
+          {
+            "name": "patient_name",
+            "type": "string"
+          },
+          {
+            "name": "patient_birth_date",
+            "type": "uint256"
+          },
+          {
+            "name": "place_of_birth",
+            "type": "string"
+          },
+          {
+            "name": "gender",
+            "type": "bool"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [],
+        "name": "patient_ids",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "constant": true,
+        "inputs": [
+          {
+            "name": "id",
+            "type": "uint256"
+          }
+        ],
+        "name": "show_data",
+        "outputs": [
+          {
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ]);
+    var _contract_address= abijson.at('0xa53e24a741da7fb84bad3b4a33259e60aa312535');
+    
+    // if(!web3.isConnected()) {
+    //   console.log("Ok....web3.isConnected");
+    // } 
+    // else {
+    //   console.log("no web3 is not Connected");
+    // }
+          
+    web3.version.getNetwork((err, netId) => {
+      console.log("netId is"+ netId)        
+      switch (netId) {
+        case "1":
+          console.log('This is mainnet')
+          break
+        case "2":
+          console.log('This is the deprecated Morden test network.')
+          break
+        case "3":
+          console.log('This is the ropsten test network.')
+          break
+        case "4":
+          console.log('This is the Rinkeby test network.')
+          break
+        case "42":
+          console.log('This is the Kovan test network.')
+          break
+        default:
+          console.log('This is an unknown network.')
+      }
+    })
+
+    function push_info(){
+      console.log("inside push")
+      var a=document.getElementById("_patient_name").value;
+      var b=document.getElementById("_patient_birth_date").value;
+      var c=document.getElementById("_place_of_birth").value;
+      var d=document.getElementById("_gender").value;
+      var e;
+      if(d==0)
+      {
+        e=""; //female
+      }
+      else if(d==1)
+      {
+        e="true";//male
+      }
+      //string _patient_name, uint256 _patient_birth_date, string _place_of_birth, bool _gender
+      _contract_address.get_info.sendTransaction(a,b,c,e,function(error,result){
+        if (!error) {
+          alert("your id is:"+result);
+        }   
+        else {
+          alert("error");
+        }
+      });
+    }
+
+    function push_data(){
+      var a=document.getElementById("patient_id_push").value;
+      var b=document.getElementById("data").value;
+      _contract_address.store_info.sendTransaction(a,b,function(error,result){
+        if (!error) {
+          alert("hash pushed");
+        }   
+        else {
+          alert("error");
+        }
+      });
+    }
+
+    function show_details(){
+      var a=document.getElementById("patient_id_pull").value;
+      
+      _contract_address.show_data.call(a,function(error,result){
+        if (!error) {
+          document.getElementById("data_label").value = result;
+        }   
+        else {
+          alert("error");
+        }
+      });
+    }
+
+  </script>
+</html> 
+
+
+
+
+
+    
+  <!-- //   function set()
+  //       {
+  //       document.getElementById("lbl").value='asdf1354sdf54sd6f454s';
+  //       }
+
+  // function Push_info()
+  //   {
+  //   var patientName=document.getElementById('pname').value;
+  //   var birthPlace=document.getElementById('bplace').value;
+  //   var birthDate=document.getElementById('datep').value;
+
+  //   var gen = document.getElementById('gender').value;
+  //   var rate_value;
+  //   if (document.getElementById('g1').checked) 
+  //   {
+  //     rate_value = document.getElementById('g1').value;
+  //   }
+  //   else
+  //   {
+  //     rate_value = document.getElementById('g2').value;
+  //   }
+
+  // alert(patientName);
+  // alert(birthDate);
+  // alert(birthPlace);
+  // alert(rate_value);
+  // }
+  // function upload()
+  // {
+  //   window.open("second.html")
+  // }
+    
+    // function fixspender(){
+    // 	var e=document.getElementById("spender").value;
+    // 	var f=document.getElementById("spen_amount").value;
+    // 	_contract_address.approve(e,f,function(error,result){
+      //         	if (!error) 
+    // 	{
+      //           	alert(result);
+      //             }   
+    // 	else 
+    // 	{
+      //          	alert("error");
+    // 	}
+    //     });
+    // }
+    // function spen_transfer(){
+    // 	var g=document.getElementById("spen_ad").value;
+    // 	var h=document.getElementById("rec_ad").value;	
+    // 	var i=document.getElementById("spen_transfer_amount").value;
+    // 	_contract_address.transferFrom(g,h,i,function(error,result){
+      //         	if (!error) 
+    // 	{
+      //           	alert(result);
+      //             }   
+    // 	else 
+    // 	{
+      //          	alert("error");
+    // 	}
+    //     });
+    // }
+    // function spe_bal(){
+    // 	var j=document.getElementById("spe_ad").value;
+    // 	_contract_address.allowance(j,function(error,result){
+      //         	if (!error) 
+    // 	{
+      //           	alert(result);
+      //             }   
+    // 	else 
+    // 	{
+      //          	alert("error");
+    // 	}
+    //     });
+    // } -->
+  
